@@ -9,6 +9,6 @@ urlpatterns = [
     path('notices/', NoticeAPIViews.as_view(), name='list-all-notices'),
     path('records/', RecordAPIViews.as_view(), name='list-all-records'),
     path('matches/', MatchAPIViews.as_view(), name='list-all-matches'),
-    path('notice/<int:id>', NoticeDetailsViews.as_view(), name='get-notice-details'),
-    path('record/<int:id>', RecordDetailsViews.as_view(), name='get-record-details'),
+    path('notices/<int:id>', NoticeDetailsViews.as_view(), name='get-notice-details'),
+    path('records/<int:id>', RecordDetailsViews.as_view(), name='get-record-details'),
 ]

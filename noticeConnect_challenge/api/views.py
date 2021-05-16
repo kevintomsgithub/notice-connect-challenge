@@ -19,10 +19,10 @@ def api_overview(request):
         'list-all-matches': 'GET - /matches',
         'create-notice': 'POST - /notices',
         'create-record': 'POST - /records',
-        'notice-details': 'GET - /notice/id',
-        'record-details': 'GET - /notice/id',
-        'delete-notice': 'DELETE - /notice/id',
-        'delete-record': 'DELETE - /record/id',
+        'notice-details': 'GET - /notices/id',
+        'record-details': 'GET - /notices/id',
+        'delete-notice': 'DELETE - /notices/id',
+        'delete-record': 'DELETE - /records/id',
     }
     return Response(api_urls)
 
@@ -81,7 +81,7 @@ class NoticeDetailsViews(APIView):
             # return no content status
             return Response(status=status.HTTP_204_NO_CONTENT)
         # serialize data
-        serializer = NoticeSerializer(notice, many=True)
+        serializer = NoticeSerializer(notice)
         # return data
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -154,7 +154,7 @@ class RecordDetailsViews(APIView):
             # return no content status
             return Response(status=status.HTTP_204_NO_CONTENT)
         # serialize data
-        serializer = RecordSerializer(record, many=True)
+        serializer = RecordSerializer(record)
         # return data
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -166,7 +166,7 @@ class RecordDetailsViews(APIView):
             # return no content status
             return Response(status=status.HTTP_204_NO_CONTENT)
         # delete all related matches
-        self.delete_matches(record_id=record.notice_id)
+        self.delete_matches(record_id=record.record_id)
         # delete record
         record.delete()
         # return no content status
