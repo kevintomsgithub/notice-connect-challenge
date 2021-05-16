@@ -115,15 +115,76 @@ class RecordAPIViews(APIView):
 
     def post(self, request):
         # serialize new record data
-        serializer = RecordSerializer(data=request.data)
+        self.serializer = RecordSerializer(data=request.data)
         # check if serialized data is valid
-        if serializer.is_valid():
-            # save data to database
-            serializer.save()
+        if self.serializer.is_valid():
+            # perform match algorithm
+            self._match_algorithm()
             # return serialized data
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(self.serializer.data, status=status.HTTP_201_CREATED)
         # if serialized data not valid
-        return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.serializer.data, status=status.HTTP_400_BAD_REQUEST)
+
+    def _save_match(self, notice_obj, match_type):
+        # save data to database
+        self.serializer.save()
+        # get record_id
+        record_id = self.serializer.data['record_id']
+        # iterate through all notice objects
+        for notice in notice_obj:
+            # save match object
+            Match.objects.create(
+                record_id=record_id,
+                notice_id=notice.notice_id,
+                match_type=match_type
+            )
+
+    def _match_algorithm(self):
+        # get details from serializerd data
+        first_name = self.serializer.validated_data['first_name']
+        last_name = self.serializer.validated_data['last_name']
+        province = self.serializer.validated_data['province']
+        date_of_birth = self.serializer.validated_data['date_of_birth']
+        # check for strong matches
+        strong_match = Notice.objects.raw(
+            "SELECT notice_id from api_notice \
+             WHERE date_of_birth=%s AND \
+                  (first_name=%s OR alt_first_name=%s) AND \
+                  (last_name=%s OR alt_last_name=%s)", 
+            [
+                date_of_birth, first_name, first_name,
+                last_name, last_name
+            ]
+        )
+        # check for possible matches
+        possible_match = Notice.objects.raw(
+            "SELECT notice_id from api_notice \
+             WHERE province=%s AND first_name=%s AND last_name=%s", 
+            [
+                province, first_name, last_name
+            ]
+        )
+        # check for weak matches
+        weak_match = Notice.objects.raw(
+            "SELECT notice_id from api_notice \
+             WHERE first_name=%s AND last_name=%s", 
+            [
+                first_name, last_name
+            ]
+        )
+        # check for current match status
+        if len(strong_match) > 0:
+            # if strong match
+            self._save_match(notice_obj=strong_match, match_type=STRONG_MATCH)
+        elif len(possible_match) > 0:
+            # if possible match
+            self._save_match(notice_obj=possible_match, match_type=POSSIBLE_MATCH)
+        elif len(weak_match) > 0:
+            # if weak match
+            self._save_match(notice_obj=weak_match, match_type=WEAK_MATCH)
+        else:
+            # if no match found
+            self.serializer.save()
 
 
 class RecordDetailsViews(APIView):
@@ -182,6 +243,6 @@ class MatchAPIViews(APIView):
         # gets all matches from database
         matches = Match.objects.all()
         # serialize all data
-        serializer = RecordSerializer(matches, many=True)
+        serializer = MatchSerializer(matches, many=True)
         # return serialized data
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
